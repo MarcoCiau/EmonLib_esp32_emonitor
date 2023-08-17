@@ -18,6 +18,18 @@
 #include "WProgram.h"
 #endif
 
+void EnergyMonitor::attachADCReadCallback(ADCReadFunction adcReadFunc)
+{
+  adcReadCallback = adcReadFunc; // Attach the callback function
+}
+
+//--------------------------------------------------------------------------------------
+// Sets MCU-power supply voltage
+//--------------------------------------------------------------------------------------
+void EnergyMonitor::setVREF(int vref)
+{
+  SupplyVoltage = vref;
+}
 
 //--------------------------------------------------------------------------------------
 // Sets the pins to be used for voltage and current sensors
@@ -65,12 +77,6 @@ void EnergyMonitor::currentTX(unsigned int _channel, double _ICAL)
 //--------------------------------------------------------------------------------------
 void EnergyMonitor::calcVI(unsigned int crossings, unsigned int timeout)
 {
-  #if defined emonTxV3
-  int SupplyVoltage=3300;
-  #else
-  int SupplyVoltage = readVcc();
-  #endif
-
   unsigned int crossCount = 0;                             //Used to measure number of times threshold is crossed.
   unsigned int numberOfSamples = 0;                        //This is now incremented
 
@@ -81,7 +87,7 @@ void EnergyMonitor::calcVI(unsigned int crossings, unsigned int timeout)
 
   while(1)                                   //the while loop...
   {
-    startV = analogRead(inPinV);                    //using the voltage waveform
+    startV = adcReadCallback(inPinV);                    //using the voltage waveform
     if ((startV < (ADC_COUNTS*0.55)) && (startV > (ADC_COUNTS*0.45))) break;  //check its within range
     if ((millis()-start)>timeout) break;
   }
@@ -99,8 +105,8 @@ void EnergyMonitor::calcVI(unsigned int crossings, unsigned int timeout)
     //-----------------------------------------------------------------------------
     // A) Read in raw voltage and current samples
     //-----------------------------------------------------------------------------
-    sampleV = analogRead(inPinV);                 //Read in raw voltage signal
-    sampleI = analogRead(inPinI);                 //Read in raw current signal
+    sampleV = adcReadCallback(inPinV);                 //Read in raw voltage signal
+    sampleI = adcReadCallback(inPinI);                 //Read in raw current signal
 
     //-----------------------------------------------------------------------------
     // B) Apply digital low pass filters to extract the 2.5 V or 1.65 V dc offset,
@@ -184,7 +190,7 @@ double EnergyMonitor::calcIrms(unsigned int Number_of_Samples)
 
   for (unsigned int n = 0; n < Number_of_Samples; n++)
   {
-    sampleI = analogRead(inPinI);
+    sampleI = adcReadCallback(inPinI);
 
     // Digital low pass filter extracts the 2.5 V or 1.65 V dc offset,
     //  then subtract this - signal is now centered on 0 counts.

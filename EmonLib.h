@@ -36,16 +36,18 @@
 #if defined(__arm__)
 #define ADC_BITS    12
 #else
-#define ADC_BITS    10
+#define ADC_BITS    12
 #endif
 
 #define ADC_COUNTS  (1<<ADC_BITS)
 
-
+// Define the adc read callback function type
+typedef uint16_t (*ADCReadFunction)(uint8_t channel);
 class EnergyMonitor
 {
   public:
-
+    void attachADCReadCallback(ADCReadFunction adcReadFunc); // Method to attach analogRead callback
+    void setVREF(int vref);
     void voltage(unsigned int _inPinV, double _VCAL, double _PHASECAL);
     void current(unsigned int _inPinI, double _ICAL);
 
@@ -65,7 +67,10 @@ class EnergyMonitor
       Irms;
 
   private:
-
+    // Function pointer for ADC read
+    ADCReadFunction adcReadCallback;
+    // MCU VREF
+    int SupplyVoltage;
     //Set Voltage and current input pins
     unsigned int inPinV;
     unsigned int inPinI;
